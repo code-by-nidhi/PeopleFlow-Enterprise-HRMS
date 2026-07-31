@@ -150,7 +150,7 @@ The primary goal of this project is to demonstrate scalable backend development 
 # 📂 Project Structure
 
 ```text
-employee-management-system/
+PeopleFlow-Enterprise HRMS
 │
 ├── controllers/
 ├── models/
@@ -220,4 +220,3 @@ This project demonstrates practical experience with:
 
 ---
 
-## ⭐ If you found this project useful, consider giving it a star!
