@@ -1,0 +1,785 @@
+Yes, that's the architecture I'd recommend for your HRMS. It matches how many real systems work.
+
+## Step 1: Seed the First Admin
+
+Run once:
+
+```text
+node seed.js
+```
+
+Creates:
+
+```text
+Admin
+```
+
+---
+
+## Step 2: Admin Logs In
+
+```
+POST /api/auth/login
+```
+
+Admin receives a JWT.
+
+---
+
+## Step 3: Admin Creates HR
+
+```
+POST /api/users
+```
+
+Body:
+
+```json
+{
+    "email": "hr@company.com",
+    "password": "Hr@12345",
+    "role": "HR"
+}
+```
+
+Only Admin can do this.
+
+---
+
+## Step 4: HR Logs In
+
+```
+POST /api/auth/login
+```
+
+Now HR has access to the HR dashboard.
+
+---
+
+## Step 5: HR Creates Employees
+
+When HR clicks **Add Employee**, your backend should:
+
+1. Create a `User`
+2. Generate `employeeId`
+3. Create an `Employee`
+
+This can be done with a single endpoint.
+
+---
+
+# Suggested Routes
+
+## Authentication
+
+```
+POST   /api/auth/login
+POST   /api/auth/refresh-token
+POST   /api/auth/logout
+GET    /api/auth/me
+```
+
+---
+
+## Users (Authentication Accounts)
+
+| Method | Route                   | Access    |
+| ------ | ----------------------- | --------- |
+| POST   | `/api/users`            | Admin, HR |
+| GET    | `/api/users`            | Admin     |
+| GET    | `/api/users/:id`        | Admin     |
+| PATCH  | `/api/users/:id`        | Admin     |
+| PATCH  | `/api/users/:id/status` | Admin     |
+| DELETE | `/api/users/:id`        | Admin     |
+
+The `User` module is mainly for login accounts and roles.
+
+---
+
+## Employees
+
+| Method | Route                       | Access                              |
+| ------ | --------------------------- | ----------------------------------- |
+| POST   | `/api/employees`            | Admin, HR                           |
+| GET    | `/api/employees`            | Admin, HR, Manager                  |
+| GET    | `/api/employees/:id`        | Admin, HR, Manager, Employee (self) |
+| PATCH  | `/api/employees/:id`        | Admin, HR                           |
+| DELETE | `/api/employees/:id`        | Admin                               |
+| GET    | `/api/employees/search`     | Admin, HR                           |
+| GET    | `/api/employees/profile/me` | Employee                            |
+
+---
+
+## Departments
+
+```
+POST   /api/departments
+GET    /api/departments
+GET    /api/departments/:id
+PATCH  /api/departments/:id
+DELETE /api/departments/:id
+```
+
+Admin & HR only for modifications.
+
+---
+
+## Designations
+
+```
+POST
+GET
+GET/:id
+PATCH
+DELETE
+```
+
+Same access as Departments.
+
+---
+
+## Attendance
+
+```
+POST /api/attendance/check-in
+PATCH /api/attendance/check-out
+
+GET /api/attendance/me
+GET /api/attendance
+
+GET /api/attendance/:employeeId
+```
+
+---
+
+## Leave
+
+```
+POST /api/leaves
+
+GET /api/leaves
+
+GET /api/leaves/me
+
+PATCH /api/leaves/:id/approve
+
+PATCH /api/leaves/:id/reject
+```
+
+---
+
+## Tasks
+
+```
+POST /api/tasks
+
+GET /api/tasks
+
+GET /api/tasks/me
+
+PATCH /api/tasks/:id
+
+DELETE /api/tasks/:id
+```
+
+---
+
+## Dashboard
+
+```
+GET /api/dashboard/admin
+
+GET /api/dashboard/hr
+
+GET /api/dashboard/manager
+
+GET /api/dashboard/employee
+```
+
+or a single endpoint:
+
+```
+GET /api/dashboard
+```
+
+where the response depends on the logged-in user's role.
+
+---
+
+## Files (Cloudinary)
+
+```
+POST /api/upload/profile
+
+POST /api/upload/resume
+
+DELETE /api/upload/:id
+```
+
+---
+
+## Notifications (Socket.io)
+
+```
+GET /api/notifications
+
+PATCH /api/notifications/:id/read
+```
+
+---
+
+# Suggested Folder Structure
+
+```text
+routes/
+│
+├── auth.routes.js
+├── user.routes.js
+├── employee.routes.js
+├── department.routes.js
+├── designation.routes.js
+├── attendance.routes.js
+├── leave.routes.js
+├── task.routes.js
+├── dashboard.routes.js
+├── upload.routes.js
+└── notification.routes.js
+```
+
+---
+
+# The Complete Flow
+
+```text
+seed.js
+   │
+   ▼
+Admin Created
+   │
+   ▼
+Admin Login
+   │
+   ▼
+Admin Creates HR
+   │
+   ▼
+HR Login
+   │
+   ▼
+HR Creates Employee
+   │
+   ├── Create User (email, password, role)
+   │
+   └── Create Employee (employeeId, department, salary...)
+   │
+   ▼
+Employee Login
+   │
+   ▼
+Employee
+├── Check In
+├── Check Out
+├── Apply Leave
+├── View Tasks
+├── View Profile
+└── View Attendance
+```
+
+## One design suggestion
+
+Since **Admin and HR are the only people who can create accounts**, I would **remove the `POST /api/auth/register` endpoint entirely**. Your authentication module only needs:
+
+* `POST /api/auth/login`
+* `POST /api/auth/refresh-token`
+* `POST /api/auth/logout`
+* `GET /api/auth/me`
+
+Account creation belongs in the `User`/`Employee` modules, protected by role-based authorization. This reflects how most enterprise HRMS applications are designed.
+----------------------------------------------------------------------------------------------------------------------------------
+
+📁 HRMS Backend API
+
+│
+├── 📂 Authentication
+│   ├── Login
+│   ├── Refresh Token
+│   ├── Logout
+│   └── Get Logged In User
+│
+├── 📂 Users
+│   ├── Create User
+│   ├── Get All Users
+│   ├── Get User By ID
+│   ├── Update User
+│   ├── Change User Status
+│   └── Delete User
+│
+├── 📂 Employees
+│   ├── Create Employee
+│   ├── Get All Employees
+│   ├── Get Employee By ID
+│   ├── Update Employee
+│   ├── Delete Employee
+│   ├── Search Employee
+│   └── My Profile
+│
+├── 📂 Departments
+│   ├── Create Department
+│   ├── Get Departments
+│   ├── Update Department
+│   └── Delete Department
+│
+├── 📂 Designations
+│   ├── Create Designation
+│   ├── Get Designations
+│   ├── Update Designation
+│   └── Delete Designation
+│
+├── 📂 Attendance
+│   ├── Check In
+│   ├── Check Out
+│   ├── My Attendance
+│   └── Employee Attendance
+│
+├── 📂 Leaves
+│   ├── Apply Leave
+│   ├── Get Leaves
+│   ├── Approve Leave
+│   ├── Reject Leave
+│   └── My Leaves
+│
+├── 📂 Tasks
+│   ├── Create Task
+│   ├── Get Tasks
+│   ├── Update Task Status
+│   ├── Delete Task
+│   └── My Tasks
+│
+├── 📂 Dashboard
+│   └── Dashboard
+│
+└── 📂 Upload
+    ├── Upload Profile
+    └── Upload Resume
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+Since you've separated **User** and **Employee**, each controller should have a clear responsibility.
+
+Your folder:
+
+```text
+controllers/
+│
+├── department.js
+├── designation.js
+├── employee.js
+└── user.js
+```
+
+I'd also add one more file:
+
+```text
+├── auth.js
+```
+
+because authentication (login, logout, refresh token) should not be inside `user.js`.
+
+---
+
+# 1. auth.js
+
+This file only handles authentication.
+
+```text
+POST /api/auth/login
+POST /api/auth/logout
+POST /api/auth/refresh-token
+GET  /api/auth/me
+```
+
+Functions:
+
+```javascript
+login()
+
+logout()
+
+refreshToken()
+
+getLoggedInUser()
+```
+
+This controller:
+
+* verifies email/password
+* generates JWT
+* generates refresh token
+* returns logged-in user
+
+---
+
+# 2. user.js
+
+This controller manages login accounts.
+
+Functions:
+
+```javascript
+createUser()
+
+getAllUsers()
+
+getUserById()
+
+updateUser()
+
+deleteUser()
+
+changeStatus()
+```
+
+Example:
+
+Admin creates HR
+
+```json
+{
+   "email":"hr@company.com",
+   "password":"Hr@123",
+   "role":"hr"
+}
+```
+
+Only this information belongs here.
+
+---
+
+# 3. employee.js
+
+This controller manages employee information.
+
+Functions:
+
+```javascript
+createEmployee()
+
+getEmployees()
+
+getEmployeeById()
+
+updateEmployee()
+
+deleteEmployee() 
+
+searchEmployee()
+
+getMyProfile()
+```
+
+Example body
+
+```json
+{
+    "firstName":"Rahul",
+    "lastName":"Sharma",
+    "department":"689xxxx",
+    "designation":"689yyy",
+    "salary":50000
+}
+```
+
+---
+
+## But remember...
+
+When creating an employee, you'll also need a `User` account.
+
+So inside `createEmployee()`:
+
+```javascript
+createEmployee()
+{
+      // 1. Create User
+
+      // 2. Generate employeeId
+
+      // 3. Create Employee
+
+      // 4. Return response
+}
+```
+
+This controller can internally use the `User` model. That's perfectly fine. Controllers can work with multiple models when the business logic requires it.
+
+---
+
+# 4. department.js
+
+Functions:
+
+```javascript
+createDepartment()
+
+getDepartments()
+
+getDepartmentById()
+
+updateDepartment()
+
+deleteDepartment()
+```
+
+---
+
+# 5. designation.js
+
+Functions:
+
+```javascript
+createDesignation()
+
+getDesignations()
+
+getDesignationById()
+
+updateDesignation()
+
+deleteDesignation()
+```
+
+---
+
+# Later Modules
+
+As you continue building the HRMS, you'll likely add:
+
+```text
+controllers/
+
+auth.js
+user.js
+employee.js
+department.js
+designation.js
+attendance.js
+leave.js
+task.js
+dashboard.js
+notification.js
+upload.js
+```
+
+---
+
+# Controller Responsibilities
+
+| Controller      | Responsibility                                                               |
+| --------------- | ---------------------------------------------------------------------------- |
+| auth.js         | Login, Logout, Refresh Token, Me                                             |
+| user.js         | Create HR/Admin/Manager accounts, update roles, activate/deactivate accounts |
+| employee.js     | Employee CRUD, employee profile, search, pagination                          |
+| department.js   | Department CRUD                                                              |
+| designation.js  | Designation CRUD                                                             |
+| attendance.js   | Check In, Check Out, History                                                 |
+| leave.js        | Apply, Approve, Reject Leave                                                 |
+| task.js         | Assign Tasks, Update Status                                                  |
+| dashboard.js    | Dashboard statistics                                                         |
+| upload.js       | Cloudinary uploads                                                           |
+| notification.js | Socket.io notifications                                                      |
+
+## One important recommendation
+
+Since **HR creates employees**, I would **not** expose a separate `POST /api/users` endpoint for creating employee accounts.
+
+Instead:
+
+* `POST /api/users` → Create **Admin**, **HR**, or **Manager** accounts.
+* `POST /api/employees` → Create an **Employee**, and inside that controller:
+
+  1. Create the `User` record (role = `"employee"`).
+  2. Generate the `employeeId`.
+  3. Create the `Employee` record.
+
+This keeps the API aligned with the business process: HR thinks "I'm adding an employee," not "I'm creating a user and then an employee." It also avoids orphaned `User` records with no corresponding employee profile.
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+PROJECT 1 (28 July – 12 August)
+Day 1 (28 July)
+Planning
+Decide folder structure
+Create GitHub repository
+Setup Express
+Setup MongoDB
+Connect Database
+Environment variables
+MVC Architecture
+Error Handling
+Git Initial Commit
+
+Goal
+
+Backend starts successfully.
+
+Day 2
+
+Authentication
+
+Register
+Login
+JWT
+Password Hashing
+Validation
+Refresh Token
+Day 3
+
+Authorization
+
+Roles
+
+Admin
+HR
+Manager
+Employee
+
+Middleware
+
+Role Based Access
+
+Day 4
+
+Employee Module
+
+CRUD
+
+Add Employee
+Update
+Delete
+View
+
+Search
+
+Pagination
+
+Filtering
+
+Day 5
+
+Department Module
+
+Designation Module
+
+Salary Structure
+
+Relationships
+
+Day 6
+
+Attendance Module
+
+Check In
+
+Check Out
+
+Attendance History
+
+Day 7
+
+Leave Management
+
+Apply Leave
+
+Approve
+
+Reject
+
+Leave Balance
+
+Day 8
+
+Task Management
+
+Assign Task
+
+Update Status
+
+Priority
+
+Deadline
+
+Day 9
+
+Cloudinary
+
+Upload
+
+Resume
+Profile
+Documents
+Day 10
+
+Redis
+
+Cache
+
+Dashboard
+
+Employee List
+
+Department List
+
+Day 11
+
+BullMQ
+
+Email Queue
+
+Weekly Report
+
+Salary Slip Queue
+
+Day 12
+
+Socket.io
+
+Real Time
+
+Notifications
+
+Task Assigned
+
+Leave Approved
+
+Day 13
+
+Dashboard
+
+Charts
+
+Statistics
+
+Analytics
+
+Day 14
+
+Deployment
+
+Swagger
+
+README
+
+Postman Collection
+
+GitHub Documentation
+
+Day 15 (12 August)
+
+Fix bugs
+
+Clean Code
+
+Professional README
+
+Deploy Backend
+
+Deploy Frontend
