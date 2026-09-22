@@ -17,7 +17,7 @@ const startSession = async (user, res) => {
     user.refreshRotatedAt = new Date()
     user.refreshToken = hashToken(refreshToken)
     await user.save()
-    res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOptions())
+    res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOptions(res.req))
     return accessToken
 }
 
@@ -47,7 +47,7 @@ const refreshToken = async (req, res) => {
     try {
         decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET_KEY)
     } catch {
-        res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined })
+        res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(req), maxAge: undefined })
         throw new AppError('Invalid or expired refresh token', 401)
     }
 
@@ -78,7 +78,7 @@ const logoutUser = async (req, res) => {
     if (token) {
         await User.updateOne({ refreshToken: hashToken(token) }, { $unset: { refreshToken: 1 } })
     }
-    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined })
+    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(req), maxAge: undefined })
     return sendSuccess(res, { message: 'Logged out successfully' })
 }
 

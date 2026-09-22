@@ -1,6 +1,23 @@
 import axios from 'axios';
 
-export const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+const PRODUCTION_API_URL = 'https://peopleflow-enterprise-hrms-backend.onrender.com';
+
+/*
+ * One build works everywhere: VITE_API_URL wins when set; otherwise a page opened on
+ * localhost or a local network address (phone testing) talks to the backend on the
+ * same machine at port 5000, and the deployed site talks to the deployed backend.
+ */
+function resolveApiUrl() {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  const { hostname } = window.location;
+  const isLocal =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    /^(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(hostname);
+  return isLocal ? `http://${hostname}:5000` : PRODUCTION_API_URL;
+}
+
+export const API_URL = resolveApiUrl().replace(/\/$/, '');
 
 /*
  * The access token lives only in memory (never localStorage), so an XSS payload

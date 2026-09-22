@@ -15,13 +15,20 @@ const hashToken = (token) => crypto.createHash('sha256').update(token).digest('h
 
 const isProduction = () => process.env.NODE_ENV === 'production'
 
-const refreshCookieOptions = () => ({
-    httpOnly: true,
-    secure: isProduction(),
-    // Frontend and API live on different domains in production
-    sameSite: isProduction() ? 'none' : 'lax',
-    path: '/api/auth',
-    maxAge: REFRESH_TTL_MS
-})
+/**
+ * Over HTTPS (deployed) the frontend and API live on different domains, so the cookie
+ * must be cross-site. Local development runs on plain http://localhost, where browsers
+ * reject SameSite=None cookies, so it stays Lax there.
+ */
+const refreshCookieOptions = (req) => {
+    const crossSite = isProduction() || Boolean(req?.secure)
+    return {
+        httpOnly: true,
+        secure: crossSite,
+        sameSite: crossSite ? 'none' : 'lax',
+        path: '/api/auth',
+        maxAge: REFRESH_TTL_MS
+    }
+}
 
 module.exports = { generateAccessToken, generateRefreshToken, hashToken, refreshCookieOptions }

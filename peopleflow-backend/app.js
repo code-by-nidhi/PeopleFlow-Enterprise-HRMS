@@ -8,9 +8,16 @@ const swaggerUi = require('swagger-ui-express')
 const swaggerSpec = require('./docs/swagger')
 const { notFound, errorHandler } = require('./middleware/errorHandler')
 
-const corsOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-    .split(',')
-    .map((origin) => origin.trim())
+// The local dev server and the deployed frontend are always allowed; CLIENT_URL adds more
+const DEFAULT_CLIENT_URLS = [
+    'http://localhost:5173',
+    'https://peopleflow-enterprise-hrms-frontend.onrender.com'
+]
+const corsOrigins = [...new Set([
+    ...DEFAULT_CLIENT_URLS,
+    ...(process.env.CLIENT_URL || '').split(',')
+])]
+    .map((origin) => origin.trim().replace(/\/$/, ''))
     .filter(Boolean)
 
 const app = express()
