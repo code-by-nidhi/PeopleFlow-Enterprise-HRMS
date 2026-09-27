@@ -36,7 +36,12 @@ app.use(cookieParser())
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '7d' }))
 
-app.get('/api/health', (_req, res) => res.json({ success: true, message: 'OK', uptime: process.uptime() }))
+app.get('/api/health', (_req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        message: 'PeopleFlow backend is running'
+    })
+})
 app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec))
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customSiteTitle: 'PeopleFlow API Docs' }))
 
