@@ -36,7 +36,7 @@ app.use(cookieParser())
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '7d' }))
 
-app.get('/api/health', (_req, res) => {
+app.get('/', (_req, res) => {
     res.status(200).json({
         status: 'OK',
         message: 'PeopleFlow backend is running'
